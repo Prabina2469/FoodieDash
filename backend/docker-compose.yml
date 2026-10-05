@@ -1,0 +1,213 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: foodiedash-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: foodiedash_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - foodiedash-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: foodiedash-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - foodiedash-network
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+    container_name: foodiedash-eureka
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_HOSTNAME=eureka-server
+    networks:
+      - foodiedash-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: foodiedash-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - foodiedash-network
+
+  user-service:
+    build:
+      context: ./user-service
+    container_name: foodiedash-user-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    depends_on:
+      - eureka-server
+      - postgres
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  order-service:
+    build:
+      context: ./order-service
+    container_name: foodiedash-order-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+      - postgres
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  restaurant-service:
+    build:
+      context: ./restaurant-service
+    container_name: foodiedash-restaurant-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    depends_on:
+      - eureka-server
+      - postgres
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  fleet-service:
+    build:
+      context: ./fleet-service
+    container_name: foodiedash-fleet-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    depends_on:
+      - eureka-server
+      - postgres
+      - redis
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: foodiedash-payment-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    depends_on:
+      - eureka-server
+      - postgres
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: foodiedash-notification-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    depends_on:
+      - eureka-server
+      - postgres
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  cart-service:
+    build:
+      context: ./cart-service
+    container_name: foodiedash-cart-service
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    depends_on:
+      - eureka-server
+      - postgres
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/foodiedash_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres_password
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - foodiedash-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+    container_name: foodiedash-ai-service
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - foodiedash-network
+
+volumes:
+  pgdata:
+
+networks:
+  foodiedash-network:
+    driver: bridge

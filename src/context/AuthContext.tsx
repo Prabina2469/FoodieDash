@@ -28,7 +28,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<UserProfile | null>;
   setupPhoneRecaptcha: (containerId: string) => RecaptchaVerifier;
   sendPhoneOtp: (phone: string, recaptchaVerifier: RecaptchaVerifier) => Promise<ConfirmationResult>;
-  loginWithDemo: (demoRole?: Role) => Promise<void>;
+  loginWithDemo: (demoRole?: Role) => Promise<UserProfile | null>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<UserProfile | null>;
   clearError: () => void;
@@ -43,39 +43,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync profile from backend or localStorage cache
-  const syncProfile = async (uid: string, token: string, email?: string | null, displayName?: string | null): Promise<UserProfile | null> => {
+  // Sync profile from backend (authoritative role source)
+  const syncProfile = async (
+    uid: string,
+    token: string,
+    email?: string | null,
+    displayName?: string | null
+  ): Promise<UserProfile | null> => {
     try {
       setApiAuthToken(token);
-      // Attempt backend call to /users/me
+      // Backend call to /users/me for authoritative role & profile
       const profile = await userService.getMyProfile();
-      if (profile) {
+      if (profile && profile.role) {
         setUserProfile(profile);
-        setRole(profile.role || 'CUSTOMER');
-        localStorage.setItem('foodiedash_user_role', profile.role || 'CUSTOMER');
+        setRole(profile.role);
         return profile;
       }
     } catch (err) {
-      console.warn('Backend profile fetch failed, using local principal fallback:', err);
+      console.warn('Backend profile fetch failed, using safe fallback:', err);
     }
 
-    // Fallback profile if backend is offline or during initial registration
-    const fallbackRole = (localStorage.getItem('foodiedash_user_role') as Role) || 'CUSTOMER';
+    // Safe fallback profile if backend is offline or during initial registration:
+    // IMPORTANT: Least privileged role ('CUSTOMER') is ALWAYS the fallback default.
+    // Frontend NEVER trusts an arbitrary or user-manipulated role from localStorage for authorization.
     const fallbackProfile: UserProfile = {
       firebaseUid: uid,
       name: displayName || (email ? email.split('@')[0] : 'Customer'),
       email: email || `${uid}@foodiedash.io`,
-      role: fallbackRole,
+      role: 'CUSTOMER',
       emailVerified: true,
       status: 'ACTIVE'
     };
     setUserProfile(fallbackProfile);
-    setRole(fallbackRole);
+    setRole('CUSTOMER');
     return fallbackProfile;
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       if (user) {
         setCurrentUser(user);
         try {
@@ -87,16 +93,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         // Check for persistent demo session
         const demoUid = localStorage.getItem('foodiedash_demo_uid');
-        const demoRole = (localStorage.getItem('foodiedash_user_role') as Role) || 'CUSTOMER';
         const demoToken = localStorage.getItem('foodiedash_auth_token');
 
         if (demoUid && demoToken) {
           try {
-            setRole(demoRole);
             setApiAuthToken(demoToken);
             await syncProfile(demoUid, demoToken, `${demoUid}@foodiedash.io`, demoUid);
           } catch (err) {
             console.warn('Demo session restoration error', err);
+            setCurrentUser(null);
+            setUserProfile(null);
+            setRole('CUSTOMER');
+            setApiAuthToken(null);
           }
         } else {
           setCurrentUser(null);
@@ -135,8 +143,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
       const token = await cred.user.getIdToken();
-      // Public signup is ALWAYS role = CUSTOMER
-      localStorage.setItem('foodiedash_user_role', 'CUSTOMER');
       const profile = await syncProfile(cred.user.uid, token, cred.user.email, name);
       if (profile && name) {
         try {
@@ -176,7 +182,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return new RecaptchaVerifier(auth, containerId, {
       size: 'invisible',
       callback: () => {
-        console.log('reCAPTCHA solved');
+        // reCAPTCHA solved
       }
     });
   };
@@ -193,39 +199,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const loginWithDemo = async (demoRole: Role = 'CUSTOMER'): Promise<void> => {
+  const loginWithDemo = async (demoRole: Role = 'CUSTOMER'): Promise<UserProfile | null> => {
     setLoading(true);
     setError(null);
-    const demoUid = demoRole === 'ADMIN' ? 'dev-admin-alex' : 'demo-customer-sarah';
-    const demoEmail = demoRole === 'ADMIN' ? 'alex.carter@foodiedash.io' : 'sarah.jenkins@foodiedash.io';
-    const demoName = demoRole === 'ADMIN' ? 'Alex Carter' : 'Sarah Jenkins';
-    const demoToken = demoUid; // Backend FirebaseTokenFilter fallback accepts raw UID token
 
+    let demoUid = 'demo-customer-sarah';
+    let demoEmail = 'sarah.jenkins@foodiedash.io';
+    let demoName = 'Sarah Jenkins';
+    let demoImage = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150';
+
+    if (demoRole === 'ADMIN') {
+      demoUid = 'dev-admin-alex';
+      demoEmail = 'alex.carter@foodiedash.io';
+      demoName = 'Alex Carter';
+      demoImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+    } else if (demoRole === 'RESTAURANT_OWNER') {
+      demoUid = 'dev-owner-1';
+      demoEmail = 'mario.rossi@foodiedash.io';
+      demoName = 'Mario Rossi';
+      demoImage = 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=150';
+    } else if (demoRole === 'DELIVERY_PARTNER') {
+      demoUid = 'dev-driver-1';
+      demoEmail = 'david.chen@foodiedash.io';
+      demoName = 'David Chen';
+      demoImage = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150';
+    }
+
+    const demoToken = demoUid;
     localStorage.setItem('foodiedash_demo_uid', demoUid);
-    localStorage.setItem('foodiedash_user_role', demoRole);
     setApiAuthToken(demoToken);
 
+    let profile: UserProfile | null = null;
     try {
-      await syncProfile(demoUid, demoToken, demoEmail, demoName);
+      profile = await syncProfile(demoUid, demoToken, demoEmail, demoName);
     } catch (e) {
       console.warn('Demo profile sync:', e);
     }
 
-    const demoProfile: UserProfile = {
-      firebaseUid: demoUid,
-      name: demoName,
-      email: demoEmail,
-      role: demoRole,
-      emailVerified: true,
-      status: 'ACTIVE',
-      profileImage: demoRole === 'ADMIN'
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
-        : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
-    };
+    if (!profile) {
+      profile = {
+        firebaseUid: demoUid,
+        name: demoName,
+        email: demoEmail,
+        role: demoRole,
+        emailVerified: true,
+        status: 'ACTIVE',
+        profileImage: demoImage
+      };
+      setUserProfile(profile);
+      setRole(demoRole);
+    }
 
-    setUserProfile(demoProfile);
-    setRole(demoRole);
     setLoading(false);
+    return profile;
   };
 
   const logout = async (): Promise<void> => {

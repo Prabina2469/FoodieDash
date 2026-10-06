@@ -23,6 +23,12 @@ public class UserController {
         this.userService = userService;
     }
 
+    @GetMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserDto> getMyProfile(@AuthenticationPrincipal AuthenticatedUser principal) {
         UserDto dto = userService.getOrCreateProfile(principal);

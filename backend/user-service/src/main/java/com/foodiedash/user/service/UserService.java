@@ -13,4 +13,5 @@ public interface UserService {
     AddressDto addAddress(String firebaseUid, AddressDto dto);
     AddressDto updateAddress(String firebaseUid, Long addressId, AddressDto dto);
     void deleteAddress(String firebaseUid, Long addressId);
+    List<UserDto> getAllUsers();
 }

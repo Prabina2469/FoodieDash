@@ -11,8 +11,13 @@ import { NotificationProvider } from './context/NotificationContext';
 // Route Guards & Layouts
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AdminRoute } from './components/auth/AdminRoute';
+import { RoleProtectedRoute } from './components/auth/RoleProtectedRoute';
 import { CustomerLayout } from './components/customer/layout/CustomerLayout';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { RestaurantOwnerLayout } from './components/restaurant/RestaurantOwnerLayout';
+import { RestaurantOwnerDashboardView } from './views/restaurant/RestaurantOwnerDashboardView';
+import { DeliveryPartnerLayout } from './components/delivery/DeliveryPartnerLayout';
+import { DeliveryPartnerDashboardView } from './views/delivery/DeliveryPartnerDashboardView';
 
 // Customer Views
 import { CustomerHomeView } from './views/customer/CustomerHomeView';
@@ -182,9 +187,41 @@ export const App: React.FC = () => {
                   </Route>
 
                   {/* =======================================================
+                      RESTAURANT OWNER PORTAL ROUTES (/restaurant-owner/*)
+                      Protected by RoleProtectedRoute (role === 'RESTAURANT_OWNER')
+                      ======================================================= */}
+                  <Route
+                    path="/restaurant-owner"
+                    element={
+                      <RoleProtectedRoute allowedRoles={['RESTAURANT_OWNER']}>
+                        <RestaurantOwnerLayout />
+                      </RoleProtectedRoute>
+                    }
+                  >
+                    <Route index element={<RestaurantOwnerDashboardView />} />
+                  </Route>
+
+                  {/* =======================================================
+                      DELIVERY PARTNER PORTAL ROUTES (/delivery/*)
+                      Protected by RoleProtectedRoute (role === 'DELIVERY_PARTNER')
+                      ======================================================= */}
+                  <Route
+                    path="/delivery"
+                    element={
+                      <RoleProtectedRoute allowedRoles={['DELIVERY_PARTNER']}>
+                        <DeliveryPartnerLayout />
+                      </RoleProtectedRoute>
+                    }
+                  >
+                    <Route index element={<DeliveryPartnerDashboardView />} />
+                  </Route>
+
+                  {/* =======================================================
                       FALLBACK & 404 ROUTING
                       ======================================================= */}
                   <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
+                  <Route path="/restaurant-owner/*" element={<Navigate to="/restaurant-owner" replace />} />
+                  <Route path="/delivery/*" element={<Navigate to="/delivery" replace />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </NotificationProvider>

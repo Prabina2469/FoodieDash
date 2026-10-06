@@ -5,7 +5,7 @@ import { RestaurantCard } from '../../components/customer/common/RestaurantCard'
 import { FoodCard } from '../../components/customer/common/FoodCard';
 
 export const WishlistView: React.FC = () => {
-  const { wishlist, loading, removeWishlistEntry } = useWishlist();
+  const { wishlist, loading } = useWishlist();
   const [activeTab, setActiveTab] = useState<'restaurants' | 'dishes'>('restaurants');
 
   const restaurants = wishlist.filter((w) => w.restaurant).map((w) => w.restaurant!);
@@ -101,7 +101,7 @@ export const WishlistView: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {dishes.map(({ entry, item, restaurant }) => (
+          {dishes.map(({ item, restaurant }) => (
             <FoodCard key={item.id} item={item} restaurant={restaurant} />
           ))}
         </div>

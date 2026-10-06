@@ -285,8 +285,7 @@ export const CustomerNavbar: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="py-2 space-y-0.5">
-                    {/* Admin Console shortcut for admin users */}
+                    {/* Role-specific portal shortcuts */}
                     {role === 'ADMIN' && (
                       <Link
                         to="/admin"
@@ -295,6 +294,28 @@ export const CustomerNavbar: React.FC = () => {
                       >
                         <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
                         Admin Operations Console
+                      </Link>
+                    )}
+
+                    {role === 'RESTAURANT_OWNER' && (
+                      <Link
+                        to="/restaurant-owner"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-label font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-sm transition-all mb-1"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">storefront</span>
+                        Merchant Kitchen Portal
+                      </Link>
+                    )}
+
+                    {role === 'DELIVERY_PARTNER' && (
+                      <Link
+                        to="/delivery"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-label font-bold text-white bg-gradient-to-r from-cyan-600 to-cyan-500 hover:shadow-sm transition-all mb-1"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">two_wheeler</span>
+                        Delivery Fleet Portal
                       </Link>
                     )}
 

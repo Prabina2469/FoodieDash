@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmationResult } from '../../services/firebase';
 
@@ -36,6 +36,24 @@ export const VerifyOtpView: React.FC = () => {
     }
   };
 
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirectUrl = searchParams.get('redirect') || '';
+
+  const handleSuccessRedirect = (userRole?: string) => {
+    if (redirectUrl) {
+      navigate(redirectUrl, { replace: true });
+    } else if (userRole === 'ADMIN') {
+      navigate('/admin', { replace: true });
+    } else if (userRole === 'RESTAURANT_OWNER') {
+      navigate('/restaurant-owner', { replace: true });
+    } else if (userRole === 'DELIVERY_PARTNER') {
+      navigate('/delivery', { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
+  };
+
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -48,11 +66,11 @@ export const VerifyOtpView: React.FC = () => {
     try {
       if (confirmationResult) {
         await confirmationResult.confirm(otpCode.trim());
-        await refreshProfile();
-        navigate('/', { replace: true });
+        const profile = await refreshProfile();
+        handleSuccessRedirect(profile?.role);
       } else {
         // Fallback demo authentication
-        navigate('/', { replace: true });
+        handleSuccessRedirect('CUSTOMER');
       }
     } catch (err: any) {
       setErrorMsg('Invalid or expired verification code. Please try again.');

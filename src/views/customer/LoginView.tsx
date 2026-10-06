@@ -21,6 +21,10 @@ export const LoginView: React.FC = () => {
       navigate(redirectUrl, { replace: true });
     } else if (userRole === 'ADMIN') {
       navigate('/admin', { replace: true });
+    } else if (userRole === 'RESTAURANT_OWNER') {
+      navigate('/restaurant-owner', { replace: true });
+    } else if (userRole === 'DELIVERY_PARTNER') {
+      navigate('/delivery', { replace: true });
     } else {
       navigate('/', { replace: true });
     }
@@ -57,11 +61,11 @@ export const LoginView: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = async (demoRole: 'CUSTOMER' | 'ADMIN') => {
+  const handleDemoLogin = async (demoRole: import('../../types').Role) => {
     setLocalErr(null);
     clearError();
-    await loginWithDemo(demoRole);
-    handleSuccessRedirect(demoRole);
+    const profile = await loginWithDemo(demoRole);
+    handleSuccessRedirect(profile?.role || demoRole);
   };
 
   return (
@@ -190,6 +194,20 @@ export const LoginView: React.FC = () => {
               className="py-2 px-3 rounded-xl bg-surface-container-lowest hover:bg-primary hover:text-white border border-surface-container font-label text-xs font-bold text-on-surface transition-all text-center"
             >
               👤 Customer (Sarah)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('RESTAURANT_OWNER')}
+              className="py-2 px-3 rounded-xl bg-surface-container-lowest hover:bg-primary hover:text-white border border-surface-container font-label text-xs font-bold text-on-surface transition-all text-center"
+            >
+              🍳 Restaurant (Mario)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoLogin('DELIVERY_PARTNER')}
+              className="py-2 px-3 rounded-xl bg-surface-container-lowest hover:bg-primary hover:text-white border border-surface-container font-label text-xs font-bold text-on-surface transition-all text-center"
+            >
+              🛵 Delivery (David)
             </button>
             <button
               type="button"
